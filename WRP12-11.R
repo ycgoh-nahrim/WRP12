@@ -14,25 +14,25 @@ options(stringsAsFactors = FALSE)
 ###############################################################################
 
 #catchment data
-catch_name <- "Gedong"
-catch_A <- 76.6 #km2
+catch_name <- "EmpGentingKlang"
+catch_A <- 76 #km2
 
 #rainfall data
-station_no <- "4012401" #station number
-station_name <- "Gedong_rf"
+station_no <- "3217002" #station number
+station_name <- "Emp Genting Klang"
 #rainfall data end before year
-end_year <- "2012"
+end_year <- "2022"
 
 #evaporation station
-ev_stn <- "Tapah"
+ev_stn <- "JPS Ampang"
 
 #find Q for percentage n
 Qn <- 95
 
 #baseflow input (from neighbouring catchment)
-bf_stn <- "4012401"
-bf_Q_min <- 0.07 #m3/s
-bf_catch_A <- 211.9 #km2
+bf_stn <- "3217401" #Sg Gombak di Damsite
+bf_Q_min <- 0.08 #m3/s (1983-1991)
+bf_catch_A <- 84.7 #km2
 
 
 #parameters
@@ -43,6 +43,9 @@ soil_mois_retention_a <- 249.5 #WRP 6, 2.3.3
 soil_mois_retention_b <- -0.004 #WRP 6, 2.3.3
 recession_K <- 0.98
 #surface_runoff_rate <- 0.1 #HSG = B
+
+#minimum count per year for analysis
+min_cnt <- 365
 
 
 #calculation
@@ -75,8 +78,8 @@ raindata <- read.csv(file=paste0(working_dir,"/", station_no, ".csv"),
                      header = TRUE, sep=",") #depends on working dir
 
 #rename columns, format date
-raindata <- raindata %>% 
-  rename(Date = date, Depth = depth) 
+colnames(raindata) <- c("Date", "Depth")
+
 #check field name
 head(raindata, 3) 
 
@@ -88,14 +91,16 @@ rain_db <- read.csv(file="F:/Documents/2019/20160506 Tangki NAHRIM/Data/SQL/rain
                     header = TRUE, sep=",")
 #check field name
 head(rain_db, 3)
+
 #extract station data
 raindata <- rain_db %>%
   filter(stn_no == station_no) %>% #check field name
   select(date, depth) %>%
   arrange(date)
+
 #rename columns, format date
-raindata <- raindata %>% 
-  rename(Date = date, Depth = depth) 
+colnames(raindata) <- c("Date", "Depth")
+
 #raindata$Date <- as.Date(raindata$Date, format = "%d/%m/%Y")
 raindata$Date <- as.Date(raindata$Date, format = "%Y-%m-%d")
 
@@ -128,21 +133,48 @@ ev_data <- ev_data %>%
 ##PRECIPITATION
 ###########################
 
+
+# AGGREGATE DATA
 # add a year column to data.frame
 raindata <- raindata %>%
   mutate(Year = year(Date))
 # add a month column to data.frame
 raindata <- raindata %>%
   mutate(Month = month(Date))
+
+
+# MISSING DATA
+## remove years with missing data
+## count non-missing data
+raindata_cnt <- raindata %>%
+  group_by(Year) %>%
+  summarise(sum_precip = sum(Depth, na.rm = T), cnt = sum(!is.na(Depth)))
+
+## select years without missing data
+raindata_cnt_list <- raindata_cnt %>%
+  filter(cnt >= min_cnt)
+
+## select data
+raindata_sel <- raindata %>%
+  right_join(raindata_cnt_list, by = "Year") %>%
+  select(Date, Year, Month, Depth)
+
+## replace NA in rainfall data with 0
+raindata_sel[is.na(raindata_sel)] <- 0
+
+
+
+# EVAPORATION DATA
 # add evaporation to data.frame
-sim_data <- left_join(raindata, ev_data, by = "Month")
+sim_data <- left_join(raindata_sel, ev_data, by = "Month")
   
 
+# CALCULATION
 # calculate the sum precipitation for each year
-precip_sum_yr <- raindata %>%
+precip_sum_yr <- raindata_sel %>%
   filter(Date < as.Date(paste0(end_year, "-01-01"))) %>% #remove for different stations
   group_by(Year) %>%
-  summarise(sum_precip = sum(Depth))
+  summarise(sum_precip = sum(Depth, na.rm = T))
 
 #calculate surface runoff rate, fs from avg rainfall
 avg_yr_precip <- mean(precip_sum_yr$sum_precip)
@@ -153,19 +185,19 @@ surface_runoff_rate <- ifelse(avg_yr_precip < 2000,
                                      0.1))
 
 # calculate the sum precipitation for each month, each year
-precip_sum_mth <- raindata %>%
-  filter(Date < as.Date(paste0(end_year, "-01-01"))) %>% #remove for different stations
+precip_sum_mth <- raindata_sel %>%
+  #filter(Date < as.Date(paste0(end_year, "-01-01"))) %>% #remove for different stations
   group_by(Month, Year) %>%
   summarise(sum_precip = sum(Depth)) %>%
   group_by(Month) %>%
-  summarise(mth_precip = mean(sum_precip))
+  summarise(mth_precip = mean(sum_precip, na.rm = T))
 
 #find max and min year
 max_year <- max(precip_sum_yr$Year)
 min_year <- min(precip_sum_yr$Year)
 total_year <- max_year - min_year + 1
 year_w_data <- length(unique(precip_sum_yr$Year))
-day_w_data <- length(unique(raindata$Date))
+day_w_data <- length(unique(raindata_sel$Date))
 angle_precip <- ifelse(total_year > 20, 90, 0)
 
 ###########################
@@ -549,6 +581,7 @@ FDC_data2 %>%
   theme_bw(base_size = 10) +
   scale_x_continuous(name = "Percentage Equaled or Exceeded", 
                      breaks = seq(0, 100, by = 10), 
+                     limits = c(0, 100),
                      minor_breaks = NULL,
                      expand = c(0,0)) + #x axis format
   #scale_y_continuous(name = expression(paste("Flow (", m^3, " )")), 
