@@ -14,7 +14,7 @@ options(stringsAsFactors = FALSE)
 ###############################################################################
 
 #catchment data
-catch_name <- "EmpGentingKlang"
+catch_name <- "EmpGentingKlang3"
 catch_A <- 76 #km2
 
 #rainfall data
@@ -36,13 +36,20 @@ bf_catch_A <- 84.7 #km2
 
 
 #parameters
-water_holding <- 250 #mm
+water_holding <- 250 #mm #WRP6, 2.3.2
 initial_soil_moisture <- 250 #mm
 initial_avail_water_runoff <- 200 #mm
 soil_mois_retention_a <- 249.5 #WRP 6, 2.3.3
 soil_mois_retention_b <- -0.004 #WRP 6, 2.3.3
-recession_K <- 0.98
-#surface_runoff_rate <- 0.1 #HSG = B
+recession_K <- 0.98 #0.9 from both WRP6, 2.3.4; WRP12, 2.2(iv) for daily modelling
+#cannot find 0.98
+
+#surface_runoff_rate <- 0.1 #HSG = B 
+#refer to 
+#JICA 1995 (The Feasibility Study on Small Reservoir Development In Peninsular Malaysia)
+#cannot find any reference to direct runoff rate (surface_runoff_rate)
+#SPAN 2021 Water Resources Yield Assessment Report by G&P referred to same thing
+
 
 #minimum count per year for analysis
 min_cnt <- 365
@@ -177,6 +184,7 @@ precip_sum_yr <- raindata_sel %>%
   summarise(sum_precip = sum(Depth, na.rm = T))
 
 #calculate surface runoff rate, fs from avg rainfall
+##cannot find reference
 avg_yr_precip <- mean(precip_sum_yr$sum_precip)
 surface_runoff_rate <- ifelse(avg_yr_precip < 2000, 
                               0.01,
@@ -831,7 +839,7 @@ input_page <- data.frame(cbind(input_param, input_value))
 #list all dataframe
 list_worksheet <- list("Input" = input_page,
                        "EV" = ev_data,
-                       "Calc" = sim_data[c(1:2, 7:26)],
+                       "Calc" = sim_data[c(1:2, 4, 7:26)],
                        "Prob" = FDC_data2,
                        "FDC" = FDC_table[c(1, 7)],
                        "Precip" = precip_sum_yr, 
