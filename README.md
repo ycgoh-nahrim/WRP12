@@ -7,6 +7,10 @@ From Thornthwaite-Mather -> WRP6 -> WRP12
 <p>From: <br>
 Department of Irrigation and Drainage Malaysia. (1982). <i>Water Resources Publication No. 12: Average annual and monthly surface water resources of Peninsular Malaysia</i> (WRP 12; Water Resources Publication). Bahagian Parit dan Taliair, Kementerian Pertanian Malaysia.
 <br></p>
+<h3>Youtube video demo</h3>
+<a href = "https://www.youtube.com/watch?v=NSzao2GvR6k">
+  <img src="https://img.youtube.com/vi/NSzao2GvR6k/0.jpg" alt="Youtube video demo shows how to run the water balance model in R Studio" width="500" height="300"></a>
+<br><br>
 <h3>Sample output</h3>
 <p>Data credit: <a href = "https://www.water.gov.my/">JPS/DID</a></p>
 <h4>Flow duration curve (FDC)</h4>
